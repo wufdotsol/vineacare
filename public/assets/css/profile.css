@@ -1,0 +1,170 @@
+:root {
+  --profile-primary: #1899ff;
+  --profile-bg: #f8fbff;
+  --profile-card-bg: #ffffff;
+  --profile-text-main: #333;
+  --profile-text-muted: #666;
+}
+
+.profile-section {
+  padding: 60px 0;
+  background-color: var(--profile-bg);
+  min-height: 80vh;
+}
+
+.profile-sidebar {
+  background: var(--profile-card-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.profile-img-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.profile-img-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 4px solid #fff;
+  transition: transform 0.3s ease;
+}
+
+.img-edit-overlay {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: var(--profile-primary);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: transform 0.2s ease;
+  border: 2px solid #fff;
+}
+
+.img-edit-overlay:hover {
+  transform: scale(1.1);
+}
+
+.profile-nav .nav-link {
+  color: var(--profile-text-muted);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  transition: all 0.25s ease;
+  font-weight: 500;
+  border: none;
+}
+
+.profile-nav .nav-link:hover {
+  background: rgba(24, 153, 255, 0.1);
+  color: var(--profile-primary);
+}
+
+.profile-nav .nav-link.active {
+  background: var(--profile-primary);
+  color: #fff !important;
+  box-shadow: 0 4px 15px rgba(24, 153, 255, 0.3);
+}
+
+.badge-notification {
+  float: right;
+  font-size: 0.7rem;
+  margin-top: 3px;
+}
+
+.profile-content {
+  background: var(--profile-card-bg);
+  border-radius: 16px;
+  min-height: 500px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.section-title {
+  font-weight: 700;
+  color: var(--profile-text-main);
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+}
+
+/* Form Styles */
+.form-label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.form-control {
+  border-radius: 10px;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  border-color: var(--profile-primary);
+  box-shadow: 0 0 0 3px rgba(24, 153, 255, 0.15);
+}
+
+.btn-primary {
+  background-color: var(--profile-primary);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #007ae6;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(24, 153, 255, 0.4);
+}
+
+/* Inbox & Notifications List */
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 15px 10px;
+  transition: background 0.2s;
+}
+
+.list-group-item:hover {
+  background-color: #fafcfe;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Animations for tab switching */
+.tab-pane {
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s ease-in-out;
+}
+
+.tab-pane.show.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+  .profile-sidebar {
+    margin-bottom: 30px;
+  }
+}

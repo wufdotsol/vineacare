@@ -1,0 +1,62 @@
+<%- include('partials/header') %>
+
+<main id="main" style="margin-top: 60px; min-height: 50vh;">
+  <section class="breadcrumbs" style="padding-top: 40px; padding-bottom: 20px; background-color: #f7f9fc;">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2>Post Thread</h2>
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/forum">Forum</a></li>
+          <li>Post</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="inner-page forum-page">
+    <div class="container">
+      <% if (uid) { %>
+        <!-- Post Detail Container -->
+        <div id="single-post-container" class="feed-container" data-post-id="<%= postId %>">
+          <div class="text-center text-muted py-5" id="post-loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading post...</p>
+          </div>
+        </div>
+
+        <!-- Comments Form -->
+        <div class="post-form-container shadow-sm mt-4">
+          <form id="inline-comment-form">
+            <input type="hidden" id="comment-post-id-inline" value="<%= postId %>">
+            <textarea id="inline-comment-text" class="form-control" placeholder="Post your reply" rows="2" maxlength="350"></textarea>
+            <div class="text-end mt-2">
+              <button type="submit" class="btn btn-primary rounded-pill px-4">Reply</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Comments Feed Container -->
+        <div class="mt-4 ms-md-4 ps-md-4 border-start border-2 border-light">
+          <h5 class="fw-bold mb-3">Comments</h5>
+          <div id="comments-container" class="feed-container">
+            <div class="text-center text-muted py-3" id="comments-loading">
+              <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            </div>
+          </div>
+        </div>
+
+      <% } else { %>
+        <div class="alert alert-warning mt-5 text-center shadow-sm" style="border-radius: 10px;">
+          <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> You are not logged in!</h4>
+          <p class="mb-0 mt-3">Please ask the user to log in to view this post.</p>
+        </div>
+      <% } %>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="/assets/js/forum.js"></script>
+<link href="/assets/css/forum.css" rel="stylesheet">
+
+<%- include('partials/footer') %>

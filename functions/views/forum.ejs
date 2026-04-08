@@ -1,0 +1,110 @@
+<%- include('partials/header') %>
+
+  <main id="main" style="margin-top: 60px; min-height: 50vh;">
+    <section class="breadcrumbs" style="padding-top: 40px; padding-bottom: 20px; background-color: #f7f9fc;">
+      <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2>Community Forum</h2>
+          <ol>
+            <li><a href="/">Home</a></li>
+            <li>Forum</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="inner-page forum-page mt-5">
+      <div class="container">
+        <% if (uid) { %>
+          <div id="logged-in-user-data" data-uid="<%= uid %>" hidden></div>
+          
+          <div class="forum-content-wrapper">
+            <!-- Posting Form -->
+            <div class="post-form-container shadow-sm">
+              <form id="compose-form">
+                <textarea id="post-text" placeholder="What's happening?" maxlength="350"></textarea>
+                <div class="post-form-footer">
+                  <div class="media-preview" id="media-preview-container"></div>
+                  <div class="form-actions">
+                    <div class="media-buttons">
+                      <label class="media-btn" title="Add Image (Max 10MB)">
+                        <i class="bi bi-image"></i>
+                        <input type="file" id="upload-image" accept="image/*" multiple hidden>
+                      </label>
+                      <label class="media-btn" title="Add Video (Max 2 min)">
+                        <i class="bi bi-camera-video"></i>
+                        <input type="file" id="upload-video" accept="video/mp4,video/webm" multiple hidden>
+                      </label>
+                      <label class="media-btn" title="Add Audio (Max 3 min)">
+                        <i class="bi bi-mic"></i>
+                        <input type="file" id="upload-audio" accept="audio/mpeg,audio/wav" multiple hidden>
+                      </label>
+                    </div>
+                    <div class="action-right">
+                      <span id="char-count">0 / 350</span>
+                      <button type="submit" id="submit-post-btn" class="btn btn-primary rounded-pill">Post</button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Feed Filters -->
+            <div class="feed-filters mt-4 mb-3">
+              <ul class="nav nav-pills" id="feed-filter-tabs">
+                <li class="nav-item">
+                  <a class="nav-link active" data-sort="time" href="#">Latest</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" data-sort="likes" href="#">Top Likes</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" data-sort="comments" href="#">Most Commented</a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Feed Container -->
+            <div id="feed-container" class="feed-container">
+              <!-- Posts will be injected here via forum.js -->
+              <div class="text-center text-muted py-5" id="feed-loading">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Loading posts...</p>
+              </div>
+            </div>
+          </div>
+          <% } else { %>
+            <div class="alert alert-warning mt-5 text-center shadow-sm" style="border-radius: 10px;">
+              <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> You are not logged in!</h4>
+              <p class="mb-0 mt-3">Please ask the user to log in using the profile icon in the navigation bar above to
+                view and participate in the community forum.</p>
+            </div>
+            <% } %>
+      </div>
+    </section>
+  </main>
+
+  <!-- Comment Modal -->
+  <div class="modal fade" id="commentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="comment-form">
+            <input type="hidden" id="comment-post-id">
+            <textarea id="comment-text" class="form-control" rows="3" placeholder="Post your reply" required></textarea>
+            <div class="text-end mt-3">
+              <button type="submit" class="btn btn-primary rounded-pill px-4">Reply</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/assets/js/forum.js"></script>
+  <link href="/assets/css/forum.css" rel="stylesheet">
+
+  <%- include('partials/footer') %>
