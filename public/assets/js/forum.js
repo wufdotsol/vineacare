@@ -9,12 +9,13 @@ import { connectStorageEmulator } from "https://www.gstatic.com/firebasejs/10.8.
 import { connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAqj6QGAKb0HzD43N5t4mDd0Bpn0q3QDGo",
-  authDomain: "vineacare.firebaseapp.com",
-  projectId: "vineacare",
-  storageBucket: "vineacare.firebasestorage.app",
-  messagingSenderId: "300769963613",
-  appId: "1:300769963613:web:61691056ab2c318ecca7b4"
+  apiKey: "AIzaSyCGYnRZEfbpNkcfEte5t7qs6IytAXx_xDw",
+  authDomain: "vineacare-test.firebaseapp.com",
+  projectId: "vineacare-test",
+  storageBucket: "vineacare-test.firebasestorage.app",
+  messagingSenderId: "536960966057",
+  appId: "1:536960966057:web:aa9cd5f3d3c713aba5b8b8",
+  measurementId: "G-XMS1JNEWPS"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
