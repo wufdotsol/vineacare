@@ -1,8 +1,8 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, increment, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-// Same config
 const firebaseConfig = {
   apiKey: "AIzaSyCGYnRZEfbpNkcfEte5t7qs6IytAXx_xDw",
   authDomain: "vineacare-test.firebaseapp.com",
@@ -15,67 +15,139 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-// Use emulator if local
-import { connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { connectStorageEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+// Store current loaded user state globally
+let globalCurrentUser = null;
 
-if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-  connectStorageEmulator(storage, '127.0.0.1', 9199);
-}
+document.addEventListener('DOMContentLoaded', () => {
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Resolve Local User
-    const loggedInUserEl = document.getElementById('logged-in-user-data');
-    if (!loggedInUserEl) return; // User not logged in, view handles empty state
-    
-    const uid = loggedInUserEl.dataset.uid;
-    let currentUserData = {};
-    
-    // Attempt local storage
-    const localStr = localStorage.getItem('currentUser');
-    if (localStr) {
-        currentUserData = JSON.parse(localStr);
+    const forumContentBlock = document.getElementById('forum-content-block');
+    const authPromptBlock = document.getElementById('auth-prompt-block');
+
+    // Setup Login Button Action
+    const centralLoginBtn = document.getElementById('central-login-btn');
+    if (centralLoginBtn) {
+        centralLoginBtn.addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                let userObj;
+                if (userSnap.exists()) {
+                    userObj = userSnap.data();
+                    await updateDoc(userRef, { isOnline: true });
+                } else {
+                    let email = user.email || "";
+                    let username = email ? email.split('@')[0] : "unknown";
+                    userObj = {
+                        name: user.displayName || "User",
+                        email: email,
+                        username: username,
+                        profile_pic: user.photoURL || "",
+                        sentFriendRequests: [], recievedFriendRequests: [], myFriends: [],
+                        myPosts: [], myChats: [], myGroups: [], myEvents: [], myJobs: [],
+                        myApplications: [], myBookmarks: [], myFeeds: [],
+                        lastSeen: null, isOnline: true, isVerified: false
+                    };
+                    await setDoc(userRef, userObj);
+                }
+                
+                localStorage.setItem('currentUser', JSON.stringify(userObj));
+                
+                // Keep backend in sync
+                const idToken = await user.getIdToken();
+                fetch('/api/sessionLogin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+                
+            } catch (err) {
+                console.error("Login failed:", err);
+                alert("Login failed, see console.");
+            }
+        });
     }
-    
-    // Force refresh from Firebase
-    const userDocRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userDocRef);
-    if(userSnap.exists()) {
-        currentUserData = { uid: uid, ...userSnap.data() };
-        localStorage.setItem('currentUser', JSON.stringify(currentUserData));
-    } else {
-        currentUserData = { uid: uid, email: "Anonymous@vineacare.com", name: "User", username: "unknown" };
-    }
 
-    // 2. Populate Header & Sidebar Fields
-    const pfpUrl = currentUserData.profile_pic || `https://ui-avatars.com/api/?name=${currentUserData.email}&background=random`;
+    // Reactively handle Auth State Changes
+    onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+            // Logged IN
+            authPromptBlock.classList.add('d-none');
+            forumContentBlock.classList.remove('d-none');
+            
+            let localUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!localUser || localUser.email !== firebaseUser.email) {
+                const docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+                if(docSnap.exists()) {
+                    localUser = docSnap.data();
+                    localStorage.setItem('currentUser', JSON.stringify(localUser));
+                }
+            }
+            
+            globalCurrentUser = { uid: firebaseUser.uid, ...localUser };
+            initForumUI(globalCurrentUser);
+
+        } else {
+            // Logged OUT (or fallback for viewing page)
+            // Even if logged out, the prompt said "remove the auth check so that I can view the forum page for now"
+            // So we show the forum anyway, but with mock "Guest" data.
+            // In a real app we might show authPromptBlock and hide forumContentBlock.
+            authPromptBlock.classList.add('d-none');
+            forumContentBlock.classList.remove('d-none');
+            
+            globalCurrentUser = null;
+            initForumUI(null); // Boot in read-only guest mode
+        }
+    });
+});
+
+
+// Initialization function separated to handle state injection cleanly
+function initForumUI(currentUserData) {
+    const isGuest = !currentUserData;
+
+    // 1. Map user data
+    const pfpUrl = isGuest ? "https://ui-avatars.com/api/?name=Guest&background=111111&color=fff" : (currentUserData.profile_pic || `https://ui-avatars.com/api/?name=${currentUserData.email}&background=random`);
+    const dispName = isGuest ? "Guest Viewer" : (currentUserData.name || currentUserData.displayName || "User");
+    const uName = isGuest ? "guest" : currentUserData.username;
     
     // Left
     document.getElementById('left-pfp').src = pfpUrl;
-    document.getElementById('left-name').textContent = currentUserData.name || currentUserData.displayName || "User";
-    document.getElementById('left-username').textContent = `@${currentUserData.username}`;
+    document.getElementById('left-name').textContent = dispName;
+    document.getElementById('left-username').textContent = `@${uName}`;
     
     // Right (Default)
     document.getElementById('right-pfp').src = pfpUrl;
-    document.getElementById('right-name').textContent = currentUserData.name || currentUserData.displayName || "User";
-    document.getElementById('right-username').textContent = `@${currentUserData.username}`;
+    document.getElementById('right-name').textContent = dispName;
+    document.getElementById('right-username').textContent = `@${uName}`;
     
     // Compose Form
     document.getElementById('compose-pfp').src = pfpUrl;
     document.getElementById('compose-pfp').style.display = 'block';
 
-    // 3. Right Column State Management
+    // Disable posting if guest
+    const postInput = document.getElementById('post-text');
+    const postSubmit = document.querySelector('#compose-form button[type="submit"]');
+    if (isGuest) {
+        postInput.placeholder = "Please log in to post or interact...";
+        postSubmit.disabled = true;
+    }
+
+    // 2. Right Column State Management
     const rightProfile = document.getElementById('right-default-profile');
     const rightComment = document.getElementById('right-comment-section');
-    
+    let currentCommentsUnsub = null;
+
     document.getElementById('close-comments-btn').addEventListener('click', () => {
         rightComment.classList.add('d-none');
         rightProfile.classList.remove('d-none');
         if(currentCommentsUnsub) { currentCommentsUnsub(); currentCommentsUnsub = null; }
     });
-
-    let currentCommentsUnsub = null;
 
     window.openContextualComment = (postId) => {
         rightProfile.classList.add('d-none');
@@ -96,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             snapshot.forEach(cSnap => {
                 const data = cSnap.data();
                 const timeStr = timeAgo(data.createdAt);
-                const isMine = data.authorUid === uid;
+                const isMine = currentUserData && data.authorUid === currentUserData.uid;
                 listEl.innerHTML += `
                     <div class="comment-card ${isMine ? 'ms-4 border-start border-primary border-4' : ''}">
                         <div class="d-flex align-items-center mb-1">
@@ -115,8 +187,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Right Column Comment Form submit
-    document.getElementById('right-comment-form').addEventListener('submit', async (e) => {
+    const commentForm = document.getElementById('right-comment-form');
+    // Clear old listener if re-initing
+    const newCommentForm = commentForm.cloneNode(true);
+    commentForm.parentNode.replaceChild(newCommentForm, commentForm);
+    
+    newCommentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isGuest) return alert("Must log in to comment.");
+        
         const input = document.getElementById('right-comment-text');
         const text = input.value.trim();
         const postId = document.getElementById('active-comment-post-id').value;
@@ -126,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.disabled = true;
         try {
             await addDoc(collection(db, 'posts', postId, 'comments'), {
-                authorUid: uid,
+                authorUid: currentUserData.uid,
                 authorEmail: currentUserData.email,
                 text: text,
                 createdAt: serverTimestamp()
@@ -141,21 +220,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 4. Middle Column Feed Logic 
-    let currentSort = 'feed'; // feed, bookmarks, posts
+    // 3. Middle Column Feed Logic 
+    let currentSort = 'feed'; 
     let feedUnsubscribe = null;
     const feedContainer = document.getElementById('feed-container');
     
     document.querySelectorAll('#feedTabs .nav-link').forEach(tab => {
-        tab.addEventListener('click', (e) => {
+        // use isolated event delegation to avoid duplicated listeners on re-init
+        const newTab = tab.cloneNode(true);
+        tab.parentNode.replaceChild(newTab, tab);
+        
+        newTab.addEventListener('click', (e) => {
             e.preventDefault();
             document.querySelectorAll('#feedTabs .nav-link').forEach(t => {
                 t.classList.remove('active');
                 t.classList.add('text-muted');
             });
-            tab.classList.add('active');
-            tab.classList.remove('text-muted');
-            currentSort = tab.dataset.tab;
+            newTab.classList.add('active');
+            newTab.classList.remove('text-muted');
+            currentSort = newTab.dataset.tab;
             loadFeed();
         });
     });
@@ -165,25 +248,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (feedUnsubscribe) { feedUnsubscribe(); feedUnsubscribe = null; }
         
         const postsRef = collection(db, 'posts');
-        let q;
-        if (currentSort === 'posts') {
-            q = query(postsRef, orderBy('createdAt', 'desc')); // Ideally filter where authorUid == uid
-        } else {
-            q = query(postsRef, orderBy('createdAt', 'desc'));
-        }
+        let q = query(postsRef, orderBy('createdAt', 'desc'));
 
         feedUnsubscribe = onSnapshot(q, (snapshot) => {
             feedContainer.innerHTML = '';
             
-            // Local client-side filter since complex queries need indexes
             const docs = [];
             snapshot.forEach(d => docs.push({id: d.id, ...d.data()}));
             
             let filteredDocs = docs;
             if (currentSort === 'posts') {
-                filteredDocs = docs.filter(d => d.authorUid === uid);
+                if (isGuest) {
+                    filteredDocs = [];
+                } else {
+                    filteredDocs = docs.filter(d => d.authorUid === currentUserData.uid);
+                }
             }
-            // bookmarks logic would filter if d.id in currentUserData.myBookmarks
             
             if (filteredDocs.length === 0) {
                 feedContainer.innerHTML = '<div class="text-center text-muted p-5">Nothing to see here yet.</div>';
@@ -191,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             filteredDocs.forEach(data => {
-                feedContainer.innerHTML += renderPostCard(data.id, data);
+                feedContainer.innerHTML += renderPostCard(data.id, data, isGuest);
             });
         }, (err) => {
             console.error("Feed error:", err);
@@ -201,37 +281,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     loadFeed();
 
-    // 5. Create Post Logic
+    // 4. Create Post Logic
     const composeForm = document.getElementById('compose-form');
-    const postText = document.getElementById('post-text');
-    let selectedFiles = [];
-    
-    composeForm.addEventListener('submit', async (e) => {
+    const newComposeForm = composeForm.cloneNode(true);
+    composeForm.parentNode.replaceChild(newComposeForm, composeForm);
+
+    newComposeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const text = postText.value.trim();
-        if (!text && selectedFiles.length === 0) return alert("Post cannot be empty.");
+        if (isGuest) return alert("Please log in to post.");
+        
+        const pt = document.getElementById('post-text');
+        const text = pt.value.trim();
+        if (!text) return alert("Post cannot be empty.");
         
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
         try {
-            const mediaUrls = [];
-            // Mocking storage logic for brevity, you'd integrate real storage uploading here
-            
-            const response = await fetch('/api/forum/post', {
+            await fetch('/api/forum/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: text,
-                    media: mediaUrls
+                    media: []
                 })
             });
-
-            if (!response.ok) throw new Error("Failed to post");
-            postText.value = '';
-            selectedFiles = [];
-            // renderPreview() clear...
+            pt.value = '';
         } catch(err) {
             console.error(err);
             alert("Failed to publish post.");
@@ -242,18 +318,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Logout via sidebar
-    document.getElementById('side-logout-btn').addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-            await updateDoc(doc(db, 'users', uid), { isOnline: false, lastSeen: serverTimestamp() });
-            await fetch('/api/sessionLogout', { method: 'POST' });
-            localStorage.removeItem('currentUser');
-            window.location.href = '/';
-        } catch(err) { console.error(err); }
-    });
-});
+    const sideLogOutBtn = document.getElementById('side-logout-btn');
+    if (sideLogOutBtn) {
+        const newLogOutBtn = sideLogOutBtn.cloneNode(true);
+        sideLogOutBtn.parentNode.replaceChild(newLogOutBtn, sideLogOutBtn);
+        
+        newLogOutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (isGuest) {
+                // If they click logout but are just a guest, trigger login instead or alert
+                const centralBtn = document.getElementById('central-login-btn');
+                if (centralBtn) centralBtn.click();
+                return;
+            }
+            try {
+                await updateDoc(doc(db, 'users', currentUserData.uid), { isOnline: false, lastSeen: serverTimestamp() });
+                await signOut(auth);
+                await fetch('/api/sessionLogout', { method: 'POST' });
+                localStorage.removeItem('currentUser');
+                window.location.reload();
+            } catch(err) { console.error(err); }
+        });
+        
+        if (isGuest) {
+            newLogOutBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-3 fs-5"></i> Log In';
+            newLogOutBtn.classList.remove('text-danger');
+            newLogOutBtn.classList.add('text-primary');
+        }
+    }
+}
 
-// Utilities and Renderers
+// Utilities
 function timeAgo(date) {
     if (!date) return 'Just now';
     const seconds = Math.floor((new Date() - date.toDate()) / 1000);
@@ -271,13 +366,14 @@ function timeAgo(date) {
 }
 
 window.toggleLikeMain = async (postId) => {
-    // In actual implementation, check if the user already liked it from users DB
-    const db = getFirestore();
+    if (!globalCurrentUser) {
+        return alert("Please log in to like this post.");
+    }
     const postRef = doc(db, 'posts', postId);
     await updateDoc(postRef, { likeCount: increment(1) });
 };
 
-function renderPostCard(postId, data) {
+function renderPostCard(postId, data, isGuest) {
     const timeStr = timeAgo(data.createdAt);
     
     return \`

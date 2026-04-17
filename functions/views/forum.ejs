@@ -2,9 +2,10 @@
 
 <main id="main" class="forum-main-container bg-light" style="min-height: 100vh;">
   <div class="container-fluid py-4" style="margin-top: 60px;">
-    <% if (uid) { %>
-      <div id="logged-in-user-data" data-uid="<%= uid %>" hidden></div>
-      <div class="row g-4 justify-content-center">
+      <div id="logged-in-user-data" data-uid="<%= typeof uid !== 'undefined' ? uid : '' %>" hidden></div>
+      
+      <!-- Content Wrapper -->
+      <div id="forum-content-block" class="row g-4 justify-content-center">
         
         <!-- Left Column: Sidebar -->
         <div class="col-lg-3 d-none d-lg-block left-sidebar">
@@ -19,10 +20,10 @@
              </div>
              <!-- Profile Summary -->
              <div class="profile-summary mb-4 p-3 bg-white shadow-sm rounded d-flex align-items-center hover-effect">
-                <img src="" id="left-pfp" class="rounded-circle me-3" width="50" height="50" alt="Profile" style="object-fit:cover;">
+                <img src="https://ui-avatars.com/api/?name=Guest&background=random" id="left-pfp" class="rounded-circle me-3" width="50" height="50" alt="Profile" style="object-fit:cover;">
                 <div style="line-height:1.2;">
                   <h6 class="mb-1 fw-bold text-dark" id="left-name">Loading...</h6>
-                  <small class="text-muted" id="left-username">@user</small>
+                  <small class="text-muted" id="left-username">@loading</small>
                 </div>
                 <div class="ms-auto"><span class="d-inline-block rounded-circle bg-success" style="width: 10px; height: 10px;" title="Online"></span></div>
              </div>
@@ -70,7 +71,7 @@
            <div class="create-post-section mb-4 p-4 shadow-sm bg-white" style="border-radius: 15px;">
               <form id="compose-form">
                 <div class="d-flex mb-3">
-                  <img src="" id="compose-pfp" class="rounded-circle me-3" width="40" height="40" alt="PFP" style="object-fit:cover; display:none;">
+                  <img src="https://ui-avatars.com/api/?name=Guest&background=random" id="compose-pfp" class="rounded-circle me-3" width="40" height="40" alt="PFP" style="object-fit:cover;">
                   <textarea class="form-control border-0 shadow-none bg-light rounded-4 px-3 py-3" id="post-text" placeholder="What's happening?" rows="3" style="resize:none;"></textarea>
                 </div>
                 <div class="d-flex justify-content-between align-items-center px-1">
@@ -101,9 +102,9 @@
                 <div class="text-center mb-4 p-4 bg-white shadow-sm rounded-4 position-relative overflow-hidden">
                    <!-- Background Banner -->
                    <div class="bg-primary position-absolute top-0 start-0 w-100" style="height: 60px; opacity: 0.1;"></div>
-                   <img src="" id="right-pfp" class="rounded-circle mb-3 border border-4 border-white shadow-sm position-relative mt-2" width="90" height="90" style="object-fit:cover;">
-                   <h5 class="fw-bold mb-0 text-dark" id="right-name">User Name</h5>
-                   <p class="text-muted mb-3" id="right-username">@username</p>
+                   <img src="https://ui-avatars.com/api/?name=Guest&background=random" id="right-pfp" class="rounded-circle mb-3 border border-4 border-white shadow-sm position-relative mt-2" width="90" height="90" style="object-fit:cover;">
+                   <h5 class="fw-bold mb-0 text-dark" id="right-name">Loading...</h5>
+                   <p class="text-muted mb-3" id="right-username">@loading</p>
                    
                    <!-- Inline Tab Navigation -->
                    <ul class="nav nav-pills justify-content-center right-side-pills mt-3" style="gap: 5px;">
@@ -145,18 +146,18 @@
         </div>
 
       </div>
-    <% } else { %>
-      <!-- Auth Prompt -->
-      <div class="row justify-content-center">
+
+      <!-- Auth Prompt (hidden by default since auth check is stripped) -->
+      <div id="auth-prompt-block" class="row justify-content-center d-none">
         <div class="col-md-6">
           <div class="alert bg-white text-center shadow rounded-4 py-5 border-0">
             <h1 class="fw-bold mb-3 text-dark">Welcome to the Community</h1>
             <p class="mb-4 text-muted fs-5">Connect with peers, share your thoughts, and stay updated. Sign in to start exploring.</p>
-            <button class="btn btn-primary btn-lg rounded-pill px-5 shadow auth-trigger-btn">Sign in with Google</button>
+            <button class="btn btn-primary btn-lg rounded-pill px-5 shadow auth-trigger-btn" id="central-login-btn">Sign in with Google</button>
           </div>
         </div>
       </div>
-    <% } %>
+      
   </div>
 </main>
 
