@@ -29,11 +29,11 @@
              </div>
              <!-- Navigation -->
              <div class="list-group list-group-flush shadow-sm rounded bg-white overflow-hidden left-nav-links">
-               <a href="#" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-person-fill-add me-3 fs-5 text-primary"></i> Received Friend Requests</a>
-               <a href="#" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-envelope-fill me-3 fs-5 text-info"></i> New Messages</a>
-               <a href="#" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-hourglass-split me-3 fs-5 text-warning"></i> Pending Requests</a>
-               <a href="#" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-people-fill me-3 fs-5 text-success"></i> My Friends</a>
-               <a href="#" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-bookmark-fill me-3 fs-5 text-secondary"></i> My Bookmarks</a>
+               <a href="#" id="left-nav-received" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-person-fill-add me-3 fs-5 text-primary"></i> Received Friend Requests</a>
+               <a href="#" id="left-nav-messages" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-envelope-fill me-3 fs-5 text-info"></i> New Messages</a>
+               <a href="#" id="left-nav-pending" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-hourglass-split me-3 fs-5 text-warning"></i> Pending Requests</a>
+               <a href="#" id="left-nav-friends" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-people-fill me-3 fs-5 text-success"></i> My Friends</a>
+               <a href="#" id="left-nav-bookmarks" class="list-group-item list-group-item-action border-0 py-3 fw-medium d-flex align-items-center"><i class="bi bi-bookmark-fill me-3 fs-5 text-secondary"></i> My Bookmarks</a>
                <a href="#" class="list-group-item list-group-item-action border-0 py-3 text-danger fw-bold d-flex align-items-center" id="side-logout-btn"><i class="bi bi-box-arrow-right me-3 fs-5"></i> Logout</a>
              </div>
            </div>
@@ -74,10 +74,8 @@
                   <img src="https://ui-avatars.com/api/?name=Guest&background=random" id="compose-pfp" class="rounded-circle me-3" width="40" height="40" alt="PFP" style="object-fit:cover;">
                   <textarea class="form-control border-0 shadow-none bg-light rounded-4 px-3 py-3" id="post-text" placeholder="What's happening?" rows="3" style="resize:none;"></textarea>
                 </div>
-                <div class="d-flex justify-content-between align-items-center px-1">
-                   <div class="media-preview" id="media-preview-container"></div>
+                <div class="d-flex justify-content-end align-items-center px-1">
                    <div class="d-flex gap-3">
-                     <button type="button" class="btn btn-light rounded-circle text-primary shadow-sm"><i class="bi bi-image"></i></button>
                      <button type="submit" class="btn btn-primary px-4 rounded-pill fw-bold shadow-sm">Post</button>
                    </div>
                 </div>

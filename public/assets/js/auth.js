@@ -84,7 +84,11 @@ if (authNavLink) {
              return;
           }
           
-          window.location.href = '/forum';
+          if (window.location.pathname.includes('/forum')) {
+              window.dispatchEvent(new CustomEvent('navLoginSuccess', { detail: userObj }));
+          } else {
+              window.location.href = '/forum';
+          }
         }).catch((error) => {
           console.error("Login error:", error);
         });
