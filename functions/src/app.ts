@@ -23,7 +23,7 @@ app.use(async (req, res, next) => {
 
   if (sessionCookie) {
     try {
-      const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
+      const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, false);
       uid = decodedClaims.uid;
     } catch (error) {
       console.error("Error verifying session cookie:", error);
@@ -170,13 +170,27 @@ app.post("/api/sessionLogin", async (req, res) => {
     const userSnapshot = await admin.firestore().collection('users').doc(uid).get();
     
     if (!userSnapshot.exists) {
+      const email = decodedToken.email || "";
+      const username = email ? email.split('@')[0] : "unknown";
       await admin.firestore().collection('users').doc(uid).set({
-        displayName: decodedToken.name || "",
-        photoURL: decodedToken.picture || "",
-        email: decodedToken.email || "",
-        username: "", // To be set by user
-        inbox: [],
-        notifications: [],
+        name: decodedToken.name || "User",
+        email: email,
+        username: username,
+        profile_pic: decodedToken.picture || "",
+        sentFriendRequests: [],
+        recievedFriendRequests: [],
+        myFriends: [],
+        myPosts: [],
+        myChats: [],
+        myGroups: [],
+        myEvents: [],
+        myJobs: [],
+        myApplications: [],
+        myBookmarks: [],
+        myFeeds: [],
+        lastSeen: null,
+        isOnline: true,
+        isVerified: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }

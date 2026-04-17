@@ -1,0 +1,184 @@
+- the forum page will be a sleek, minimalistic, and modern user interface for a social media platform.
+- a three column layout
+    - left column:Gmail style notifications sidebar with collapsible lists for Received Friend Requests, New Messages, Pending Sent Friend Requests, My Friends, My Bookmarks, Logout option with pfp name and username with an online status indicator.
+    - middle column: a fixed "Create Posts" section, followed by a scrollable list of posts.
+    - right column: selected post comment section and selected profiles display.
+                  : displays current user's profile as the default first view.
+
+# leveraging bootstrap 5 for the layout, the following grid layout will be used
+    - left column: 3 columns
+    - middle column: 6 columns
+    - right column: 3 columns
+
+# the left column will be a fixed sidebar with collapsible lists for Received Friend Requests, New Messages, Pending Sent Friend Requests, My Friends, My Bookmarks, Logout option with pfp name and username with an online status indicator.
+# the middle column will be a fixed "Create Posts" section, followed by a scrollable list of posts.
+# the right column will be a fixed selected post comment section and selected profiles display.
+# the right column will display current user's profile as the default first view.
+
+# more notes for each column
+
+# left column
+    - will have a Gmail style notifications sidebar with collapsible lists for Received Friend Requests, New Messages, Pending Sent Friend Requests, My Friends, My Bookmarks, Logout option with pfp name and username with an online status indicator.
+    - on medium sized devices, it collapses into a secondary sidemenu with the profile pic as the actionable item to open and close the sidemenu.
+    - on small sized devices, the main navigation's pfp will be the actionable item to open and close the sidemenu.
+    - a separate option to logout on mobile will be added to the main menu.
+    - the sidemenu will have a search bar at the top to search for users and friends.
+    - the search bar will have a search icon and a clear icon.
+    - the search bar will have a placeholder text "Search".
+    - the search bar will have a border-radius of 5px.
+    - the search bar will have a padding of 5px.
+    - the search bar will have a margin of 5px.
+    - the search bar will have a background-color of #f5f5f5.
+    - the search bar will have a border-color of #f5f5f5.
+    - the search bar will have a border-width of 1px.
+    - the search bar will have a border-style of solid.
+    - the search bar will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).
+
+# middle column
+    - will have a fixed secondary navigation with vinea Care logo and name on the left, and a search bar on the right.
+    - the search bar will have a search icon and a clear icon.
+    - the search bar will have a placeholder text "Search".
+    - the search bar will have a border-radius of 5px.
+    - the search bar will have a padding of 5px.
+    - the search bar will have a margin of 5px.
+    - the search bar will have a background-color of #f5f5f5.
+    - the search bar will have a border-color of #f5f5f5.
+    - the search bar will have a border-width of 1px.
+    - the search bar will have a border-style of solid.
+    - the search bar will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).
+    - the search bar will have a height of 40px.
+    - the search bar will have a width of 200px.
+    - the search bar returns user posts with username or email input. hint text should say this.
+    - a tab view for My Feed, My Bookmarks, and My Posts.
+    - will have a fixed "Create Posts" section, followed by a scrollable list of posts.
+    - the "Create Posts" section will have a text area for the post content and a button to post.
+    - the "Create Posts" section will have a border-radius of 5px.
+    - the "Create Posts" section will have a padding of 5px.
+    - the "Create Posts" section will have a margin of 5px.
+    - the "Create Posts" section will have a background-color of #f5f5f5.
+    - the "Create Posts" section will have a border-color of #f5f5f5.
+    - the "Create Posts" section will have a border-width of 1px.
+    - the "Create Posts" section will have a border-style of solid.
+    - the "Create Posts" section will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).
+
+    - a refresh function that gets posts from the firebase firestore database in the posts collection and displays them in the scrollable list of posts.
+    - the posts will be displayed in reverse chronological order.
+    - the posts will be displayed in a card format.
+    - the posts will have a border-radius of 5px.
+    - the posts will have a padding of 5px.
+    - the posts will have a margin of 5px.
+    - the posts will have a background-color of #f5f5f5.
+    - the posts will have a border-color of #f5f5f5.
+    - the posts will have a border-width of 1px.
+    - the posts will have a border-style of solid.
+    - the posts will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).
+
+    - each post has the author's pfp, display name, and username as a clickable link to the author's profile which will preview on the right column.
+    - the above info is displayed in a row above the post content. Instagram style.
+    - each post has a like button, a comment button, a share button, and a bookmark button.
+    - the like button will have a heart icon and will be filled with red when the post is liked.
+    - the comment button will have a speech bubble icon and will be filled with blue when the post is commented on.
+    - the share button will have a share icon and will be filled with green when the post is shared.
+    - the bookmark button will have a bookmark icon and will be filled with yellow when the post is bookmarked.
+    - all these actions have the current user's id in the firebase firestore database in the posts collection in the likes, comments, shares, and bookmarks fields.
+    - all these actions have the current post's id in the firebase firestore database in the users collection in the myLikes, myComments, myShares, and myBookmarks fields.
+    - if the author id of a post is the current user's uid, an optional delete post button which permanently deletes the post on firebase firestore database in the posts collection and in the users collection in the myPosts field will be displayed.
+    - selecting the comment option on a post populates the right column with the comment section for that post.
+    - selecting the author's pfp, display name, or username on a post populates the right column with the author's profile.
+
+# right column
+    - will display current user's profile as the default first view.
+    - this will feature the user's pfp, display name, username, and a tabview for the user's inbox, posts, bookmarks, friends, and sent friend requests.
+    - each tab will have a scrollable list of the user's posts, bookmarks, friends, and sent friend requests.
+
+    - when a post is selected from the middle column, the right column will display the comment section for that post.
+    - the comment section will have a text area for the comment content and a button to comment.
+    - the comment section will have a border-radius of 5px.
+    - the comment section will have a padding of 5px.
+    - the comment section will have a margin of 5px.
+    - the comment section will have a background-color of #f5f5f5.
+    - the comment section will have a border-color of #f5f5f5.
+    - the comment section will have a border-width of 1px.
+    - the comment section will have a border-style of solid.
+    - the comment section will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).
+    - the comments will populte from the post's firebase doc with the pfp of the commenter, their display name, username, and the comment content.
+    - the comments will be displayed in a card format.
+    - the comments will have a border-radius of 5px.
+    - the comments will have a padding of 5px.
+    - the comments will have a margin of 5px.
+    - the comments will have a background-color of #f5f5f5.
+    - the comments will have a border-color of #f5f5f5.
+    - the comments will have a border-width of 1px.
+    - the comments will have a border-style of solid.
+    - the comments will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).    
+
+    - when a profile is selected from the middle column, the right column will display the profile section for that user.
+    - the profile section will have the user's pfp, display name, username, and a tabview for the user's posts, bookmarks, friends, and sent friend requests.
+    - each tab will have a scrollable list of the user's posts, bookmarks, friends, and an option to send them a friend request if they are not already friends and the current user has not sent them a friend request. 
+
+    - when the inbox tab is selected from the right column, it will display the user's inbox.
+    - the inbox is a list of all the user's chats.
+    - each chat will have the other user's pfp, display name, username, and the last message sent in the chat.
+    - the chats will be displayed in a card format.
+    - the chats will have a border-radius of 5px.
+    - the chats will have a padding of 5px.
+    - the chats will have a margin of 5px.
+    - the chats will have a background-color of #f5f5f5.
+    - the chats will have a border-color of #f5f5f5.
+    - the chats will have a border-width of 1px.
+    - the chats will have a border-style of solid.
+    - the chats will have a box-shadow of 0px 2px 5px rgba(0, 0, 0, 0.1).
+    - the messages of the current user float to the right and the messages of the other user float to the left.
+    - the messages of the current user have a background-color of #34e3f6ff.
+    - the messages of the other user have a background-color of #7bf79aff.
+    - the current user can double-tap on a message to like it if it's the other user's message and displays a filled heart icon on the message.
+
+
+    ## Data Classes
+    Class Post:
+        postId: string => unique id for the post
+        authorId: string => uid of the author
+        content: string => content of the post
+        timestamp: DateTime => time of the post
+        likes: List<String> => list of uids of the users who liked the post
+        comments: List<String> => list of uids of the users who commented on the post
+        shares: List<String> => list of uids of the users who shared the post
+        bookmarks: List<String> => list of uids of the users who bookmarked the post
+
+    Class Comment:
+        commentId: string => unique id for the comment
+        postId: string => uid of the post
+        authorId: string => uid of the author
+        content: string => content of the comment
+        timestamp: DateTime => time of the comment
+        likes: List<String> => list of uids of the users who liked the comment
+
+    Class Chat:
+        chatId: string => unique id for the chat
+        user1Id: string => uid of the first user
+        user2Id: string => uid of the second user
+        messages: List<Message> => list of messages in the chat
+
+    Class Message:
+        messageId: string => unique id for the message
+        chatId: string => uid of the chat
+        senderId: string => uid of the sender
+        content: string => content of the message
+        timestamp: DateTime => time of the message
+        likes: List<String> => list of uids of the users who liked the message
+
+## Actions Definitions
+- Liking a post: adds the current user's uid to the likes list of the post in the firebase firestore database in the posts collection and adds the post's id to the myLikes list of the current user in the firebase firestore database in the users collection.
+- Commenting on a post: adds the comment id to the comments list of the post in the firebase firestore database in the posts collection and adds the comment to the firebase firestore database in the comments collection.
+- Bookmarking a post: adds the current user's uid to the bookmarks list of the post in the firebase firestore database in the posts collection and adds the post's id to the myBookmarks list of the current user in the firebase firestore database in the users collection.
+- Sending a friend request: adds the current user's uid to the sentFriendRequests list of the other user in the firebase firestore database in the users collection and adds the other user's uid to the recievedFriendRequests list of the current user in the firebase firestore database in the users collection.
+- Accepting a friend request: adds the other user's uid to the myFriends list of the current user in the firebase firestore database in the users collection and adds the current user's uid to the myFriends list of the other user in the firebase firestore database in the users collection.
+- Rejecting a friend request: removes the other user's uid from the recievedFriendRequests list of the current user in the firebase firestore database in the users collection and removes the current user's uid from the sentFriendRequests list of the other user in the firebase firestore database in the users collection.
+- Removing a friend: removes the other user's uid from the myFriends list of the current user in the firebase firestore database in the users collection and removes the current user's uid from the myFriends list of the other user in the firebase firestore database in the users collection.
+- Deleting a post: removes the post's id from the myPosts list of the author in the firebase firestore database in the users collection and deletes the post from the firebase firestore database in the posts collection.
+- Sending a message: adds the message to the messages list of the chat in the firebase firestore database in the chats collection and adds the chat's id to the myChats list of the sender in the firebase firestore database in the users collection.
+- Sending a message instanciates a chat object with a unique id, the two users' uids, and an empty list of messages.    
+- the unique chat id is added to the myChats list of both users in the firebase firestore database in the users collection.
+- the message is added to the messages list of the chat in the firebase firestore database in the chats collection.
+- a chat is only created when a message is sent for the first time between two users.
+- chats display the other user's pfp, display name, username, and the last message sent in the chat.

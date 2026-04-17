@@ -71,12 +71,20 @@ if (authNavLink) {
           localStorage.setItem('currentUser', JSON.stringify(userObj));
 
           const idToken = await result.user.getIdToken();
-          await fetch('/api/sessionLogin', {
+          const response = await fetch('/api/sessionLogin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ idToken })
           });
-          window.location.reload();
+          
+          if (!response.ok) {
+             console.error("Backend Session Error:", await response.text());
+             alert("Session sync failed! Please try logging in again.");
+             return;
+          }
+          
+          window.location.href = '/forum';
         }).catch((error) => {
           console.error("Login error:", error);
         });
