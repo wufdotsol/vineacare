@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc, arrayUnion, arrayRemove, getDocs, where, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc, deleteDoc, arrayUnion, arrayRemove, getDocs, where, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -15,32 +15,27 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Global State
 window.globalCurrentUser = null;
 window.db = db; 
 window.isGuest = true;
 
-// Toast Notification Engine
 window.showToast = (message, isError = false) => {
     const container = document.getElementById('global-toast-container');
     if (!container) return;
-    
-    // Create random ID
     const toastId = 'toast-' + Math.random().toString(36).substr(2, 9);
     const bgClass = isError ? 'bg-danger text-white' : 'bg-success text-white';
     
-    const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 show" role="alert" aria-live="assertive" aria-atomic="true" style="transition: opacity 0.3s ease; opacity: 1;">
+    container.insertAdjacentHTML('beforeend', `
+        <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 show" role="alert" style="transition: opacity 0.3s ease; opacity: 1;">
           <div class="d-flex">
             <div class="toast-body fw-bold">
               <i class="bi ${isError ? 'bi-exclamation-triangle' : 'bi-check-circle'} me-2"></i> ${message}
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('${toastId}').style.opacity = '0'; setTimeout(()=> {document.getElementById('${toastId}').remove()}, 300);"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('${toastId}').remove();"></button>
           </div>
         </div>
-    `;
+    `);
     
-    container.insertAdjacentHTML('beforeend', toastHtml);
     setTimeout(() => {
         const el = document.getElementById(toastId);
         if (el) {
@@ -55,17 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const forumContentBlock = document.getElementById('forum-content-block');
     const authPromptBlock = document.getElementById('auth-prompt-block');
 
-    // Setup Login Button Action (Deferred strictly to auth.js)
     const centralLoginBtn = document.getElementById('central-login-btn');
     if (centralLoginBtn) {
         centralLoginBtn.addEventListener('click', () => {
             const navLink = document.getElementById('auth-nav-link');
             if (navLink) navLink.click();
-            else window.showToast("Authentication unavailabe right now.", true);
         });
     }
 
-    // Reactively handle Auth State Changes
     onAuthStateChanged(auth, async (firebaseUser) => {
         authPromptBlock.classList.add('d-none');
         forumContentBlock.classList.remove('d-none');
@@ -89,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         initForumUI(window.globalCurrentUser);
     });
 
-    // Listen for nav-triggered login seamlessly
     window.addEventListener('navLoginSuccess', (e) => {
         window.globalCurrentUser = { uid: auth.currentUser.uid, ...e.detail };
         window.isGuest = false;
@@ -100,40 +91,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Initialization function
 function initForumUI(currentUserData) {
     const isGuest = window.isGuest;
 
-    // 1. Map user data
     const pfpUrl = isGuest ? "https://ui-avatars.com/api/?name=Guest&background=111111&color=fff" : (currentUserData?.profile_pic || `https://ui-avatars.com/api/?name=${(currentUserData?.email || "User").split('@')[0]}&background=random`);
     const dispName = isGuest ? "Guest Viewer" : (currentUserData?.name || currentUserData?.displayName || "User");
     const uName = isGuest ? "guest" : (currentUserData?.username || "user");
     
-    // Left
     document.getElementById('left-pfp').src = pfpUrl;
     document.getElementById('left-name').textContent = dispName;
     document.getElementById('left-username').textContent = `@${uName}`;
     
-    // Right (Default)
     document.getElementById('right-pfp').src = pfpUrl;
     document.getElementById('right-name').textContent = dispName;
     document.getElementById('right-username').textContent = `@${uName}`;
     
-    // Compose Form
     if (document.getElementById('compose-pfp')) document.getElementById('compose-pfp').src = pfpUrl;
 
-    // Disable posting if guest
     const postInput = document.getElementById('post-text');
     const postSubmit = document.querySelector('#compose-form button[type="submit"]');
     if (isGuest && postInput) {
-        postInput.placeholder = "Please log in to post or interact...";
+        postInput.placeholder = "Please log in to post...";
         postSubmit.disabled = true;
     } else if (!isGuest && postInput) {
         postInput.placeholder = "What's happening?";
         postSubmit.disabled = false;
     }
 
-    // Right Column View Manager
     const rightProfile = document.getElementById('right-default-profile');
     const rightComment = document.getElementById('right-comment-section');
     
@@ -162,12 +146,112 @@ function initForumUI(currentUserData) {
 
     document.getElementById('close-comments-btn').addEventListener('click', () => setRightView('profile'));
 
-    // --- Bookmarks Logic ---
+    // --- Search Logic ---
+    const setupSearch = (inputId, clearId) => {
+        const inp = document.getElementById(inputId);
+        const clr = document.getElementById(clearId);
+        if(!inp) return;
+        
+        inp.addEventListener('keyup', async (e) => {
+            const text = e.target.value.trim().toLowerCase();
+            if (text.length > 0) {
+                clr.classList.remove('d-none');
+                if (e.key === 'Enter') {
+                    if (isGuest) return window.showToast("Log in to search.", true);
+                    setRightView('dynamic');
+                    rightDynamic.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                        <h5 class="fw-bold mb-0 text-dark">Search Results</h5>
+                        <button class="btn btn-sm btn-light rounded-circle" onclick="document.getElementById('close-comments-btn').click()"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <div id="search-list-content" class="flex-grow-1 overflow-auto"><span class="spinner-border spinner-border-sm"></span> Locating...</div>
+                    `;
+                    try {
+                        const usersRef = collection(db, 'users');
+                        const q1 = query(usersRef, where('username', '>=', text), where('username', '<=', text + '\uf8ff'), limit(20));
+                        const snap = await getDocs(q1);
+                        const listE = document.getElementById('search-list-content');
+                        listE.innerHTML = '';
+                        if(snap.empty) {
+                            listE.innerHTML = '<div class="text-muted text-center pt-3">No matching profiles found.</div>';
+                            return;
+                        }
+                        snap.forEach(d => {
+                            const u = d.data();
+                            listE.innerHTML += `
+                            <div class="d-flex align-items-center mb-3 bg-light p-2 rounded shadow-sm border" style="cursor:pointer;" onclick="window.viewUserProfile('${d.id}')">
+                                <img src="${u.profile_pic || 'https://ui-avatars.com/api/?name='+u.name}" class="rounded-circle me-3" width="40" height="40">
+                                <div><div class="fw-bold fs-6">${u.name}</div><div class="text-muted" style="font-size:0.75rem;">@${u.username}</div></div>
+                            </div>
+                            `;
+                        });
+                    } catch(err) { console.error(err); }
+                }
+            } else {
+                clr.classList.add('d-none');
+            }
+        });
+        clr.addEventListener('click', () => { inp.value = ''; clr.classList.add('d-none'); setRightView('profile'); });
+    };
+
+    setupSearch('left-search-input', 'left-search-clear');
+    setupSearch('middle-search-input', 'middle-search-clear');
+
+    // --- Dynamic Ext Profile Engine ---
+    window.viewUserProfile = async (targetUid) => {
+        if(isGuest) return window.showToast("Must log in.", true);
+        if(targetUid === currentUserData.uid) { setRightView('profile'); return; }
+        
+        setRightView('dynamic');
+        rightDynamic.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>';
+        
+        try {
+            const docS = await getDoc(doc(db, 'users', targetUid));
+            if(!docS.exists()) throw new Error("Missing user");
+            const tp = docS.data();
+            
+            rightDynamic.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                  <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-person badge bg-primary me-2"></i>Profile</h6>
+                  <button class="btn btn-sm btn-light rounded-circle" onclick="document.getElementById('close-comments-btn').click()"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="text-center mb-3">
+                   <img src="${tp.profile_pic || 'https://ui-avatars.com/api/?name='+tp.name}" class="rounded-circle mb-2 border border-3 shadow-sm" width="80" height="80" style="object-fit:cover;">
+                   <h5 class="fw-bold mb-0 text-dark">${tp.name}</h5>
+                   <p class="text-muted mb-2">@${tp.username}</p>
+                   <div class="d-flex justify-content-center gap-2 mt-2">
+                       <button class="btn btn-sm btn-primary rounded-pill fw-bold px-3" onclick="window.sendFriendRequest('${targetUid}')">Add Friend</button>
+                   </div>
+                </div>
+                <ul class="nav nav-pills justify-content-center right-side-pills border-bottom pb-2 mb-2" style="gap:5px;">
+                   <li class="nav-item"><a class="nav-link active rounded-pill px-3 py-1 fw-bold fs-7">Posts</a></li>
+                </ul>
+                <div id="ext-profile-posts" class="flex-grow-1 overflow-auto pe-1" style="scrollbar-width: thin;">
+                   <div class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Loading...</div>
+                </div>
+            `;
+            
+            const qP = query(collection(db, 'posts'), where("authorUid", "==", targetUid), orderBy('createdAt', 'desc'), limit(15));
+            const pSnap = await getDocs(qP);
+            const pCont = document.getElementById('ext-profile-posts');
+            pCont.innerHTML = '';
+            if(pSnap.empty) { pCont.innerHTML = '<div class="text-muted text-center pt-3 mt-4 border border-dashed rounded p-3">No public posts.</div>'; return; }
+            
+            pSnap.forEach(d => {
+                pCont.innerHTML += renderPostCard(d.id, d.data(), false);
+            });
+            
+        } catch(err) {
+            console.error(err);
+            window.showToast("Failed to load profile", true);
+        }
+    };
+
+
     window.toggleBookmarkMain = async (postId) => {
         if (isGuest) return window.showToast("Log in to save bookmarks.", true);
         const userRef = doc(db, 'users', currentUserData.uid);
         let myBookmarks = currentUserData.myBookmarks || [];
-        
         if (myBookmarks.includes(postId)) {
             myBookmarks = myBookmarks.filter(id => id !== postId);
             await updateDoc(userRef, { myBookmarks: arrayRemove(postId) });
@@ -182,7 +266,42 @@ function initForumUI(currentUserData) {
         loadFeed(); 
     };
 
-    // --- Left Nav Interactions (Networking) ---
+    window.toggleLikeMain = async (postId) => {
+        if (isGuest) return window.showToast("Please log in to like this post.", true);
+        const uid = currentUserData.uid;
+        const likeRef = doc(db, 'posts', postId, 'likes', uid);
+        const postRef = doc(db, 'posts', postId);
+        const userRef = doc(db, 'users', uid);
+        
+        try {
+            const snap = await getDoc(likeRef);
+            if (snap.exists()) {
+                window.showToast("You already liked this post!");
+            } else {
+                await setDoc(likeRef, { likedAt: serverTimestamp() });
+                await updateDoc(postRef, { likeCount: increment(1) });
+                await updateDoc(userRef, { myLikes: arrayUnion(postId) });
+                
+                currentUserData.myLikes = currentUserData.myLikes || [];
+                currentUserData.myLikes.push(postId);
+                localStorage.setItem('currentUser', JSON.stringify(currentUserData));
+                
+                window.showToast("Liked!");
+                loadFeed();
+            }
+        } catch (err) { window.showToast("Failed to like.", true); }
+    };
+
+    window.deletePostMain = async (postId) => {
+        if (!confirm("Are you sure you want to permanently delete this post?")) return;
+        try {
+            await deleteDoc(doc(db, 'posts', postId));
+            await updateDoc(doc(db, 'users', currentUserData.uid), { myPosts: arrayRemove(postId) });
+            window.showToast("Post annihilated.");
+            loadFeed();
+        } catch(err) { window.showToast("Failed to delete post.", true); }
+    };
+
     const attachLeftNav = (id, handler) => {
         const el = document.getElementById(id);
         if(!el) return;
@@ -190,7 +309,7 @@ function initForumUI(currentUserData) {
         el.parentNode.replaceChild(newEl, el);
         newEl.addEventListener('click', (e) => {
             e.preventDefault();
-            if(isGuest) return window.showToast("Please log in to view this section.", true);
+            if(isGuest) return window.showToast("Please log in.", true);
             handler();
         });
     };
@@ -214,28 +333,23 @@ function initForumUI(currentUserData) {
             await updateDoc(doc(db, 'users', targetUid), { recievedFriendRequests: arrayUnion(globalCurrentUser.uid) });
             await updateDoc(doc(db, 'users', globalCurrentUser.uid), { sentFriendRequests: arrayUnion(targetUid) });
             window.showToast("Friend request sent!");
-        } catch (err) {
-            console.error(err);
-            window.showToast("Failed to send friend request.", true);
-        }
+        } catch (err) { window.showToast("Failed to send request.", true); }
     };
 
     window.acceptFriend = async (targetUid) => {
         try {
             await updateDoc(doc(db, 'users', currentUserData.uid), { recievedFriendRequests: arrayRemove(targetUid), myFriends: arrayUnion(targetUid) });
             await updateDoc(doc(db, 'users', targetUid), { sentFriendRequests: arrayRemove(currentUserData.uid), myFriends: arrayUnion(currentUserData.uid) });
-            window.showToast('Friend request accepted!');
-            setRightView('profile');
-        } catch(err) { window.showToast('Failed to accept request.', true); }
+            window.showToast('Accepted!'); setRightView('profile');
+        } catch(err) {}
     };
 
     window.rejectFriend = async (targetUid) => {
         try {
             await updateDoc(doc(db, 'users', currentUserData.uid), { recievedFriendRequests: arrayRemove(targetUid) });
             await updateDoc(doc(db, 'users', targetUid), { sentFriendRequests: arrayRemove(currentUserData.uid) });
-            window.showToast('Friend request dismissed.');
-            setRightView('profile');
-        } catch(err) { window.showToast('Failed to modify request.', true); }
+            window.showToast('Dismissed'); setRightView('profile');
+        } catch(err) {}
     };
 
     const renderNetworkList = async (title, uidArray, type) => {
@@ -250,7 +364,7 @@ function initForumUI(currentUserData) {
         
         const listEl = document.getElementById('network-list-content');
         if(!uidArray || uidArray.length === 0) {
-            listEl.innerHTML = '<div class="pt-4">No users found in this network tier.</div>';
+            listEl.innerHTML = '<div class="pt-4">Empty tier.</div>';
             return;
         }
 
@@ -259,10 +373,8 @@ function initForumUI(currentUserData) {
         users.forEach(u => {
             let actions = '';
             if (type === 'received') {
-                actions = `
-                    <button class="btn btn-sm btn-success rounded-pill fw-bold" onclick="window.acceptFriend('${u.uid}')"><i class="bi bi-check"></i> Accept</button>
-                    <button class="btn btn-sm btn-danger rounded-pill" onclick="window.rejectFriend('${u.uid}')"><i class="bi bi-x"></i></button>
-                `;
+                actions = `<button class="btn btn-sm btn-success rounded-pill fw-bold" onclick="window.acceptFriend('${u.uid}')"><i class="bi bi-check"></i> Accept</button>
+                           <button class="btn btn-sm btn-danger rounded-pill" onclick="window.rejectFriend('${u.uid}')"><i class="bi bi-x"></i></button>`;
             } else if (type === 'friends') {
                 actions = `<button class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="window.openChat('${u.uid}', '${u.name}')"><i class="bi bi-chat-dots"></i> Message</button>`;
             } else if (type === 'pending') {
@@ -270,13 +382,13 @@ function initForumUI(currentUserData) {
             }
             
             listEl.innerHTML += `
-                <div class="d-flex align-items-center mb-3 bg-light p-2 rounded-3 shadow-sm border border-1">
+                <div class="d-flex align-items-center mb-3 bg-light p-2 rounded-3 shadow-sm border border-1" style="cursor:pointer;" onclick="window.viewUserProfile('${u.uid}')">
                     <img src="${u.profile_pic || 'https://ui-avatars.com/api/?name='+u.name}" class="rounded-circle me-3 border shadow-sm" width="40" height="40">
                     <div class="me-auto text-start" style="line-height:1.2;">
                         <div class="fw-bold" style="font-size:0.9rem;">${u.name}</div>
                         <div class="text-muted" style="font-size:0.75rem;">@${u.username}</div>
                     </div>
-                    <div class="d-flex gap-2">${actions}</div>
+                    <div class="d-flex gap-2" onclick="event.stopPropagation()">${actions}</div>
                 </div>
             `;
         });
@@ -297,31 +409,38 @@ function initForumUI(currentUserData) {
         `;
     });
 
-    attachLeftNav('left-nav-bookmarks', () => {
-        const tab = document.querySelector('[data-tab="bookmarks"]');
-        if (tab) tab.click();
-    });
+    attachLeftNav('left-nav-bookmarks', () => { document.querySelector('[data-tab="bookmarks"]')?.click(); });
 
     // --- Chat Logic ---
+    window.likeMessage = async (chatId, msgId) => {
+        try {
+            await updateDoc(doc(db, 'chats', chatId, 'messages', msgId), { likes: arrayUnion(currentUserData.uid) });
+            window.showToast("Liked message!");
+        } catch(e) { console.error(e); }
+    };
+
     let currentChatUnsub = null;
     window.openChat = async (targetUid, targetName) => {
         setRightView('dynamic');
+        const chatId = currentUserData.uid < targetUid ? `${currentUserData.uid}_${targetUid}` : `${targetUid}_${currentUserData.uid}`;
+        
         rightDynamic.innerHTML = `
             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-              <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-chat-text text-primary me-2"></i> ${targetName}</h6>
+              <h6 class="fw-bold mb-0 text-dark" style="cursor:pointer;" onclick="window.viewUserProfile('${targetUid}')"><i class="bi bi-chat-text text-primary me-2"></i> ${targetName}</h6>
               <button class="btn btn-sm btn-light rounded-circle" onclick="document.getElementById('close-comments-btn').click()"><i class="bi bi-x-lg"></i></button>
             </div>
             <div id="chat-messages-wall" class="flex-grow-1 overflow-auto pe-2 mb-3 d-flex flex-column" style="scrollbar-width: thin;">
                <div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm"></span> Syncing channel...</div>
             </div>
-            <form id="chat-form" class="mt-auto border-top pt-3 d-flex shadow-sm p-2 rounded-pill bg-light">
-               <input type="text" class="form-control rounded-pill bg-transparent border-0 px-3 flex-grow-1 shadow-none" id="chat-input" placeholder="Type a message..." required autocomplete="off">
-               <button class="btn btn-primary rounded-circle shadow-sm" type="submit" style="width:38px;height:38px;"><i class="bi bi-send-fill text-white"></i></button>
+            <form id="chat-form" class="mt-auto border-top pt-3 d-flex shadow-sm p-2 rounded bg-light">
+               <input type="text" class="form-control rounded-pill bg-white border-0 px-3 flex-grow-1 shadow-none" id="chat-input" placeholder="Type a message..." required autocomplete="off">
+               <button class="btn btn-primary rounded-circle shadow-sm ms-2" type="submit" style="width:38px;height:38px;"><i class="bi bi-send-fill text-white"></i></button>
             </form>
         `;
 
-        const chatId = currentUserData.uid < targetUid ? `${currentUserData.uid}_${targetUid}` : `${targetUid}_${currentUserData.uid}`;
-        await setDoc(doc(db, 'chats', chatId), { lastActive: serverTimestamp() }, { merge: true });
+        await setDoc(doc(db, 'chats', chatId), { user1Id: currentUserData.uid, user2Id: targetUid, lastActive: serverTimestamp() }, { merge: true });
+        await updateDoc(doc(db, 'users', currentUserData.uid), { myChats: arrayUnion(chatId) });
+        await updateDoc(doc(db, 'users', targetUid), { myChats: arrayUnion(chatId) });
 
         const wall = document.getElementById('chat-messages-wall');
         if (currentChatUnsub) currentChatUnsub();
@@ -331,9 +450,13 @@ function initForumUI(currentUserData) {
             snapshot.forEach(m => {
                 const data = m.data();
                 const isMe = data.senderId === currentUserData.uid;
+                const alignment = isMe ? 'ms-auto' : 'me-auto';
+                const bgColor = isMe ? '#34e3f6ff' : '#7bf79aff';
+                const heart = (data.likes && data.likes.length > 0) ? `<i class="bi bi-heart-fill text-danger float-end ms-2" style="font-size:0.75rem;"></i>` : '';
+                
                 wall.innerHTML += `
-                    <div class="chat-message ${isMe ? 'sent' : 'received'}">
-                        ${data.text}
+                    <div class="${alignment} mb-2 p-2 rounded-3 shadow-sm" style="max-width: 80%; background-color: ${bgColor}; color: #111; user-select:none; cursor:pointer;" title="Double tap to like" ondblclick="window.likeMessage('${chatId}', '${m.id}')">
+                        ${data.text} ${heart}
                     </div>
                 `;
             });
@@ -346,47 +469,40 @@ function initForumUI(currentUserData) {
             const text = input.value.trim();
             if (!text) return;
             try {
+                input.value = '';
                 await addDoc(collection(db, 'chats', chatId, 'messages'), {
                     senderId: currentUserData.uid,
                     text: text,
+                    likes: [],
                     createdAt: serverTimestamp()
                 });
                 await updateDoc(doc(db, 'chats', chatId), { lastActive: serverTimestamp() });
-                input.value = '';
-            } catch(err) { window.showToast("Failed to deliver message.", true); }
+            } catch(err) { window.showToast("Delivery failed.", true); }
         });
     };
 
-    // --- Sub-Collections: Contextual Comments ---
+    // --- Comments Logic ---
     let currentCommentsUnsub = null;
     window.openContextualComment = (postId) => {
         setRightView('comment');
         document.getElementById('active-comment-post-id').value = postId;
-        
         const listEl = document.getElementById('comments-list');
         listEl.innerHTML = '<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm"></span> Loading...</div>';
         
         if (currentCommentsUnsub) currentCommentsUnsub();
         currentCommentsUnsub = onSnapshot(query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'asc')), (snapshot) => {
             listEl.innerHTML = '';
-            if (snapshot.empty) {
-                listEl.innerHTML = '<div class="text-center text-muted pt-4">No comments yet.</div>';
-                return;
-            }
+            if (snapshot.empty) { listEl.innerHTML = '<div class="text-center text-muted pt-4">No comments.</div>'; return; }
             snapshot.forEach(cSnap => {
                 const data = cSnap.data();
-                const timeStr = timeAgo(data.createdAt);
                 const isMine = currentUserData && data.authorUid === currentUserData.uid;
                 listEl.innerHTML += `
-                    <div class="comment-card ${isMine ? 'ms-4 border-start border-primary border-4 shadow-sm' : ''}">
-                        <div class="d-flex align-items-center mb-1">
-                            <img src="https://ui-avatars.com/api/?name=${data.authorEmail}&background=random" class="rounded-circle me-2" width="24" height="24">
+                    <div class="comment-card ${isMine ? 'ms-4 border-start border-primary border-4 shadow-sm' : ''} mb-3 p-2 bg-light rounded">
+                        <div class="d-flex align-items-center mb-1 cursor-pointer" onclick="window.viewUserProfile('${data.authorUid}')">
                             <span class="fw-bold fs-7 me-auto">${data.authorEmail.split('@')[0]}</span>
-                            <small class="text-muted" style="font-size:0.7rem;">${timeStr}</small>
+                            <small class="text-muted" style="font-size:0.7rem;">${timeAgo(data.createdAt)}</small>
                         </div>
-                        <div class="ps-4" style="font-size:0.85rem;">
-                            ${data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-                        </div>
+                        <div class="ps-2" style="font-size:0.85rem;">${data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
                     </div>
                 `;
             });
@@ -400,30 +516,26 @@ function initForumUI(currentUserData) {
         commentForm.parentNode.replaceChild(newCommentForm, commentForm);
         newCommentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (isGuest) return window.showToast("Must log in to comment.", true);
-            
+            if (isGuest) return window.showToast("Must log in.", true);
             const input = document.getElementById('right-comment-text');
             const text = input.value.trim();
             const postId = document.getElementById('active-comment-post-id').value;
             if (!text || !postId) return;
-            
             const btn = e.target.querySelector('button');
             btn.disabled = true;
             try {
-                await addDoc(collection(db, 'posts', postId, 'comments'), {
+                const cDoc = await addDoc(collection(db, 'posts', postId, 'comments'), {
                     authorUid: currentUserData.uid,
                     authorEmail: currentUserData.email,
                     text: text,
                     createdAt: serverTimestamp()
                 });
-                await updateDoc(doc(db, 'posts', postId), { commentCount: increment(1) });
+                await updateDoc(doc(db, 'posts', postId), { commentCount: increment(1), comments: arrayUnion(cDoc.id) });
+                await updateDoc(doc(db, 'users', currentUserData.uid), { myComments: arrayUnion(cDoc.id) });
                 input.value = '';
-                window.showToast("Comment added!");
-            } catch(err) {
-                window.showToast("Failed to inject comment.", true);
-            } finally {
-                btn.disabled = false;
-            }
+                window.showToast("Comment inserted!");
+            } catch(err) { window.showToast("Failed to comment.", true); } 
+            finally { btn.disabled = false; }
         });
     }
 
@@ -435,125 +547,76 @@ function initForumUI(currentUserData) {
     document.querySelectorAll('#feedTabs .nav-link').forEach(tab => {
         const newTab = tab.cloneNode(true);
         tab.parentNode.replaceChild(newTab, tab);
-        
         newTab.addEventListener('click', (e) => {
             e.preventDefault();
-            document.querySelectorAll('#feedTabs .nav-link').forEach(t => {
-                t.classList.remove('active');
-                t.classList.add('text-muted');
-            });
-            newTab.classList.add('active');
-            newTab.classList.remove('text-muted');
-            currentSort = newTab.dataset.tab;
-            loadFeed();
+            document.querySelectorAll('#feedTabs .nav-link').forEach(t => { t.classList.remove('active'); t.classList.add('text-muted'); });
+            newTab.classList.add('active'); newTab.classList.remove('text-muted');
+            currentSort = newTab.dataset.tab; loadFeed();
         });
     });
 
     function loadFeed() {
         if (!feedContainer) return;
         if (feedUnsubscribe) { feedUnsubscribe(); feedUnsubscribe = null; }
-        
-        const postsRef = collection(db, 'posts');
-        // Implemented limit(50) for memory safety out of compliance review
-        let q = query(postsRef, orderBy('createdAt', 'desc'), limit(50));
-
+        const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(50));
         feedUnsubscribe = onSnapshot(q, (snapshot) => {
             feedContainer.innerHTML = '';
-            
             const docs = [];
             snapshot.forEach(d => docs.push({id: d.id, ...d.data()}));
-            
             let filteredDocs = docs;
-            if (currentSort === 'posts') {
-                filteredDocs = isGuest ? [] : docs.filter(d => d.authorUid === currentUserData.uid);
-            } else if (currentSort === 'bookmarks') {
-                filteredDocs = isGuest ? [] : docs.filter(d => (currentUserData.myBookmarks || []).includes(d.id));
-            }
+            if (currentSort === 'posts') filteredDocs = isGuest ? [] : docs.filter(d => d.authorUid === currentUserData.uid);
+            else if (currentSort === 'bookmarks') filteredDocs = isGuest ? [] : docs.filter(d => (currentUserData.myBookmarks || []).includes(d.id));
             
             if (filteredDocs.length === 0) {
-                feedContainer.innerHTML = '<div class="text-center text-muted p-5 mt-4 border rounded-4 border-dashed bg-white shadow-sm">Nothing to see here yet. Contribute to the conversation!</div>';
+                feedContainer.innerHTML = '<div class="text-center text-muted p-5 mt-4 border rounded border-dashed bg-white shadow-sm">No items.</div>';
                 return;
             }
-            
-            filteredDocs.forEach(data => {
-                feedContainer.innerHTML += renderPostCard(data.id, data, isGuest);
-            });
-        }, (err) => {
-            console.error("Feed error:", err);
-            feedContainer.innerHTML = '<div class="text-danger p-3">Failed to load feed. Ensure db permissions are robust.</div>';
-        });
+            filteredDocs.forEach(data => { feedContainer.innerHTML += renderPostCard(data.id, data, isGuest); });
+        }, (err) => { feedContainer.innerHTML = '<div class="text-danger p-3">Failed strictly.</div>'; });
     }
-    
     loadFeed();
 
-    // --- Create Post Logic (Text Only) ---
     const composeFormPost = document.getElementById('compose-form');
     if (composeFormPost) {
         const newComposeForm = composeFormPost.cloneNode(true);
         composeFormPost.parentNode.replaceChild(newComposeForm, composeFormPost);
-
         newComposeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (isGuest) return window.showToast("Please log in to post.", true);
-            
             const pt = document.getElementById('post-text');
             const text = pt.value.trim();
             if (!text) return window.showToast("Post is empty.", true);
-            
             const submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
             try {
-                await fetch('/api/forum/post', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text, media: [] }) 
-                });
-                pt.value = '';
-                window.showToast("Successfully posted to feed!");
-            } catch(err) {
-                window.showToast("Failed to publish post to feed.", true);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Post';
-            }
+                const res = await fetch('/api/forum/post', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, media: [] }) });
+                const d = await res.json();
+                await updateDoc(doc(db, 'users', currentUserData.uid), { myPosts: arrayUnion(d.id) });
+                pt.value = ''; window.showToast("Posted to feed!");
+            } catch(err) { window.showToast("Failed to publish post.", true); } 
+            finally { submitBtn.disabled = false; }
         });
     }
 
-    // Logout via sidebar
     const sideLogOutBtn = document.getElementById('side-logout-btn');
     if (sideLogOutBtn) {
         const newLogOutBtn = sideLogOutBtn.cloneNode(true);
         sideLogOutBtn.parentNode.replaceChild(newLogOutBtn, sideLogOutBtn);
-        
         newLogOutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            if (isGuest) {
-                const navLink = document.getElementById('auth-nav-link');
-                if (navLink) navLink.click();
-                return;
-            }
+            if (isGuest) { document.getElementById('auth-nav-link')?.click(); return; }
             try {
-                window.showToast("Logging you out beautifully...");
                 await updateDoc(doc(db, 'users', currentUserData.uid), { isOnline: false, lastSeen: serverTimestamp() });
                 await signOut(auth);
                 await fetch('/api/sessionLogout', { method: 'POST' });
                 localStorage.removeItem('currentUser');
-                
-                setTimeout(() => window.location.href = '/', 600);
-            } catch(err) { window.showToast("Failed to sever connection.", true); }
+                window.location.href = '/';
+            } catch(err) { window.showToast("Failure.", true); }
         });
-        
-        if (isGuest) {
-            newLogOutBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-3 fs-5"></i> Log In';
-            newLogOutBtn.classList.remove('text-danger');
-            newLogOutBtn.classList.add('text-primary');
-        }
+        if (isGuest) { newLogOutBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-3 fs-5"></i> Log In'; newLogOutBtn.classList.add('text-primary'); }
     }
 }
 
-// Utilities
 function timeAgo(date) {
     if (!date) return 'Just now';
     const seconds = Math.floor((new Date() - date.toDate()) / 1000);
@@ -570,44 +633,43 @@ function timeAgo(date) {
     return Math.floor(interval) + "m";
 }
 
-window.toggleLikeMain = async (postId) => {
-    if (window.isGuest) return window.showToast("Please log in to like this post.", true);
-    const postRef = doc(window.db, 'posts', postId);
-    await updateDoc(postRef, { likeCount: increment(1) });
-};
-
 function renderPostCard(postId, data, isGuest) {
     const timeStr = timeAgo(data.createdAt);
-    const bmClass = (!isGuest && window.globalCurrentUser?.myBookmarks?.includes(postId)) ? "bi-bookmark-fill text-primary" : "bi-bookmark";
-    
-    return `
-      <div class="post-card" data-id="${postId}">
+    let myLikes = [];
+    if(!isGuest && window.globalCurrentUser?.myLikes) myLikes = window.globalCurrentUser.myLikes;
+    const isLiked = myLikes.includes(postId);
+
+    return \`
+      <div class="post-card" data-id="\${postId}">
         <div class="d-flex align-items-center mb-3">
-          <img src="https://ui-avatars.com/api/?name=${data.authorEmail?.split('@')[0] || "U"}&background=random" class="rounded-circle me-3 border border-1 shadow-sm" width="45" height="45">
-          <div class="me-auto">
-            <h6 class="mb-0 fw-bold">${data.authorEmail?.split('@')[0]}</h6>
-            <small class="text-muted">${timeStr}</small>
+          <img src="https://ui-avatars.com/api/?name=\${(data.authorEmail || "u").split('@')[0]}&background=random" class="rounded-circle me-3 border shadow-sm" width="45" height="45" style="cursor:pointer;" onclick="window.viewUserProfile('\${data.authorUid}')">
+          <div class="me-auto" style="cursor:pointer;" onclick="window.viewUserProfile('\${data.authorUid}')">
+            <h6 class="mb-0 fw-bold">\${(data.authorEmail || "user").split('@')[0]}</h6>
+            <small class="text-muted">\${timeStr}</small>
           </div>
-          ${!isGuest && data.authorUid !== window.globalCurrentUser?.uid ? `
-            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="window.sendFriendRequest('${data.authorUid}')" title="Add Friend">
+          \${!isGuest && data.authorUid !== window.globalCurrentUser?.uid ? \`
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="window.sendFriendRequest('\${data.authorUid}')" title="Add Friend">
                <i class="bi bi-person-plus"></i> Connect
             </button>
-          ` : ''}
+          \` : ''}
+          \${!isGuest && data.authorUid === window.globalCurrentUser?.uid ? \`
+            <button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0 fw-bold ms-2 border-0" onclick="window.deletePostMain('\${postId}')" title="Delete">
+               <i class="bi bi-trash fs-5"></i>
+            </button>
+          \` : ''}
         </div>
-        <div class="post-body mb-3 fs-6">
-          ${data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-        </div>
+        <div class="post-body mb-3 fs-6">\${data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
         <div class="post-actions d-flex gap-4 border-top pt-2 mt-2">
-          <button class="d-flex align-items-center gap-2 comment-act" title="Comment" onclick="window.openContextualComment('${postId}')">
-            <i class="bi bi-chat fs-5"></i> <span>${data.commentCount || 0}</span>
+          <button class="d-flex align-items-center gap-2 comment-act" title="Comment" onclick="window.openContextualComment('\${postId}')">
+            <i class="bi bi-chat fs-5"></i> <span>\${data.commentCount || 0}</span>
           </button>
-          <button class="d-flex align-items-center gap-2 like-act" title="Like" onclick="window.toggleLikeMain('${postId}')">
-            <i class="bi bi-heart fs-5"></i> <span>${data.likeCount || 0}</span>
+          <button class="d-flex align-items-center gap-2 like-act \${isLiked ? 'text-danger' : ''}" title="Like" onclick="window.toggleLikeMain('\${postId}')">
+            <i class="bi \${isLiked ? 'bi-heart-fill' : 'bi-heart'} fs-5"></i> <span>\${data.likeCount || 0}</span>
           </button>
-          <button class="d-flex align-items-center gap-2 bookmark-act ms-auto ${!isGuest && window.globalCurrentUser?.myBookmarks?.includes(postId) ? 'text-primary' : ''}" title="Bookmark" onclick="window.toggleBookmarkMain('${postId}')">
-            <i class="bi ${bmClass} fs-5"></i>
+          <button class="d-flex align-items-center gap-2 bookmark-act ms-auto \${!isGuest && window.globalCurrentUser?.myBookmarks?.includes(postId) ? 'text-primary' : ''}" title="Bookmark" onclick="window.toggleBookmarkMain('\${postId}')">
+            <i class="bi \${(!isGuest && window.globalCurrentUser?.myBookmarks?.includes(postId)) ? 'bi-bookmark-fill' : 'bi-bookmark'} fs-5"></i>
           </button>
         </div>
       </div>
-    `;
+    \`;
 }

@@ -11,11 +11,11 @@
         <div class="col-lg-3 d-none d-lg-block left-sidebar">
            <div class="sidebar-content position-sticky" style="top: 100px;">
              <!-- Desktop Search Bar -->
-             <div class="search-bar-container mb-4 shadow-sm rounded">
+             <div class="search-bar-container mb-4 rounded" style="background-color: #f5f5f5; border: 1px solid #f5f5f5; box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);">
                <div class="input-group">
-                 <span class="input-group-text bg-white border-0"><i class="bi bi-search"></i></span>
-                 <input type="text" class="form-control bg-white border-0 shadow-none ps-0" placeholder="Search Users & Friends">
-                 <span class="input-group-text bg-white border-0"><i class="bi bi-x-circle text-muted d-none clear-btn" style="cursor:pointer;"></i></span>
+                 <span class="input-group-text border-0" style="background-color: #f5f5f5;"><i class="bi bi-search"></i></span>
+                 <input type="text" id="left-search-input" class="form-control border-0 shadow-none ps-0" placeholder="Search" style="background-color: #f5f5f5;">
+                 <span class="input-group-text border-0" style="background-color: #f5f5f5;"><i class="bi bi-x-circle text-muted d-none clear-btn" style="cursor:pointer;" id="left-search-clear"></i></span>
                </div>
              </div>
              <!-- Profile Summary -->
@@ -47,9 +47,10 @@
                  <img src="/assets/img/logos/vinea_care_clr.png" height="35" alt="Vinea Care Logo">
               </div>
               <div class="middle-search w-50 pe-2">
-                 <div class="input-group input-group-sm rounded-pill overflow-hidden border">
-                   <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
-                   <input type="text" class="form-control bg-white border-0 shadow-none" placeholder="Search Ex: @user">
+                 <div class="input-group input-group-sm rounded overflow-hidden" style="background-color: #f5f5f5; border: 1px solid #f5f5f5; box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); height:40px;">
+                   <span class="input-group-text border-0" style="background-color: #f5f5f5;"><i class="bi bi-search text-muted"></i></span>
+                   <input type="text" id="middle-search-input" class="form-control border-0 shadow-none" placeholder="Search" style="background-color: #f5f5f5;" title="Search users or email">
+                   <span class="input-group-text border-0" style="background-color: #f5f5f5;"><i class="bi bi-x-circle text-muted d-none" style="cursor:pointer;" id="middle-search-clear"></i></span>
                  </div>
               </div>
            </div>
@@ -60,7 +61,7 @@
                <a class="nav-link active rounded-pill fw-bold" data-tab="feed" href="#">My Feed</a>
              </li>
              <li class="nav-item">
-               <a class="nav-link rounded-pill fw-bold text-muted" data-tab="bookmarks" href="#">Bookmarks</a>
+               <a class="nav-link rounded-pill fw-bold text-muted" data-tab="bookmarks" href="#">My Bookmarks</a>
              </li>
              <li class="nav-item">
                <a class="nav-link rounded-pill fw-bold text-muted" data-tab="posts" href="#">My Posts</a>
@@ -68,11 +69,11 @@
            </ul>
 
            <!-- Create Post -->
-           <div class="create-post-section mb-4 p-4 shadow-sm bg-white" style="border-radius: 15px;">
+           <div class="create-post-section mb-4 p-2 rounded" style="background-color: #f5f5f5; border: 1px solid #f5f5f5; box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);">
               <form id="compose-form">
                 <div class="d-flex mb-3">
                   <img src="https://ui-avatars.com/api/?name=Guest&background=random" id="compose-pfp" class="rounded-circle me-3" width="40" height="40" alt="PFP" style="object-fit:cover;">
-                  <textarea class="form-control border-0 shadow-none bg-light rounded-4 px-3 py-3" id="post-text" placeholder="What's happening?" rows="3" style="resize:none;"></textarea>
+                  <textarea class="form-control border-0 shadow-none bg-white rounded px-3 py-3" id="post-text" placeholder="What's happening?" rows="3" style="resize:none;"></textarea>
                 </div>
                 <div class="d-flex justify-content-end align-items-center px-1">
                    <div class="d-flex gap-3">
