@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCGYnRZEfbpNkcfEte5t7qs6IytAXx_xDw",
@@ -14,6 +15,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // DOM Elements
 const profilePicLarge = document.getElementById('profile-pic-large');
@@ -138,6 +140,14 @@ profileForm.addEventListener('submit', async (e) => {
 logoutBtn.addEventListener('click', async () => {
   if (confirm("Are you sure you want to logout?")) {
     try {
+      if (auth.currentUser) {
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userRef, {
+          lastSeen: serverTimestamp(),
+          isOnline: false
+        });
+        localStorage.removeItem('currentUser');
+      }
       await signOut(auth);
       await fetch('/api/sessionLogout', { method: 'POST' });
       window.location.href = "/";

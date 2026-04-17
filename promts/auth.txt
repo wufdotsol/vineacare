@@ -1,0 +1,31 @@
+authflow 
+- attempts to sign in user with google sign-in
+- checks if there is a document on the firebase firestore database in the users collection with the uid as the document id if there is no document, it proceeds to the next step, if there is a document, it proceeds to the next step
+- takes the login user responce and generates a user instance as follows
+        Class user:
+            name: string => Display Name from auth responce
+            email: string => Email from auth responce
+            username: string => email without the chars after @ from auth responce
+            profile_pic: string => image url from auth responce
+            sentFriendRequests List<String> => initialy empty list of strings (uids)
+            recievedFriendRequests List<String> => initialy empty list of strings (uids)
+            myFriends List<String> => initialy empty list of strings (uids)
+            myPosts List<String> => initialy empty list of strings (postIds)
+            myChats List<String> => initialy empty list of strings (chatIds)
+            myGroups List<String> => initialy empty list of strings (groupIds)
+            myEvents List<String> => initialy empty list of strings (eventIds)
+            myJobs List<String> => initialy empty list of strings (jobIds)
+            myApplications List<String> => initialy empty list of strings (jobIds)
+            myBookmarks List<String> => initialy empty list of strings (postIds)
+            myFeeds List<String> => initialy empty list of strings (postId)
+            lastSeen DateTime => initialy null
+            isOnline bool => initialy true
+            isVerified bool => initialy false
+
+- if there was no document with the uid as the document id, once this user object is instanciated, it is pushed to the firebase firestore database in the users collection with the uid as the document id.
+- if a doc with the uid as the document id was found, it is not pushed to the database, instead the user object is updated with the data from the document.
+- this user object is set as the current user object and used to populate the Forum page.   
+
+- logging out; 
+    - sets the current user to null and navigates to the homepage.
+    - updates the firebase doc lastSeen to the current time and isOnline to false.
