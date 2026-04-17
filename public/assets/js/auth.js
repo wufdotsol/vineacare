@@ -33,50 +33,29 @@ if (authNavLink) {
           console.log("Logged in:", result.user.displayName);
           
           const uid = result.user.uid;
-          const userRef = doc(db, "users", uid);
-          const userSnap = await getDoc(userRef);
-          
-          let userObj;
-          if (userSnap.exists()) {
-            userObj = userSnap.data();
-            await updateDoc(userRef, { isOnline: true });
-            userObj.isOnline = true;
-          } else {
-            let email = result.user.email || "";
-            let username = email ? email.split('@')[0] : "unknown";
-            
-            userObj = {
-              name: result.user.displayName || "User",
-              email: email,
-              username: username,
-              profile_pic: result.user.photoURL || "",
-              sentFriendRequests: [],
-              recievedFriendRequests: [],
-              myFriends: [],
-              myPosts: [],
-              myChats: [],
-              myGroups: [],
-              myEvents: [],
-              myJobs: [],
-              myApplications: [],
-              myBookmarks: [],
-              myFeeds: [],
-              lastSeen: null,
-              isOnline: true,
-              isVerified: false
-            };
-            await setDoc(userRef, userObj);
-          }
-          
-          localStorage.setItem('currentUser', JSON.stringify(userObj));
-
           const idToken = await result.user.getIdToken();
+          
           const response = await fetch('/api/sessionLogin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify({ idToken })
           });
+          
+          if (!response.ok) {
+             console.error("Backend Session Error:", await response.text());
+             alert("Session sync failed! Please try logging in again.");
+             return;
+          }
+
+          // Backend initialized our DB entry if new. Now we fetch latest state.
+          const userRef = doc(db, "users", uid);
+          await updateDoc(userRef, { isOnline: true });
+          const userSnap = await getDoc(userRef);
+          const userObj = userSnap.data();
+          
+          console.log("Downloaded Firebase User Document:", userObj);
+          localStorage.setItem('currentUser', JSON.stringify(userObj));
           
           if (!response.ok) {
              console.error("Backend Session Error:", await response.text());

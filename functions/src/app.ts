@@ -61,26 +61,7 @@ app.get("/profile/:uid", (req, res) => {
   res.render("profile", { title: "Profile", profileUid: req.params.uid });
 });
 
-// Endpoint to fetch private user data (inbox, notifications)
-app.get("/api/user/me", async (req, res) => {
-  const uid = res.locals.uid;
-  if (!uid) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
 
-  try {
-    const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    if (!userDoc.exists) {
-      res.json({ inbox: [], notifications: [], username: "", displayName: "", photoURL: "" });
-      return;
-    }
-    res.json(userDoc.data());
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    res.status(500).send("Internal Error");
-  }
-});
 
 // Endpoint to create a new forum post securely
 app.post("/api/forum/post", async (req, res) => {
@@ -117,38 +98,7 @@ app.post("/api/forum/post", async (req, res) => {
   }
 });
 
-// Endpoint to update user profile
-app.post("/api/user/update", async (req, res) => {
-  const uid = res.locals.uid;
-  const { displayName, photoURL, username } = req.body;
 
-  if (!uid) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  try {
-    // Update Firestore
-    const userRef = admin.firestore().collection('users').doc(uid);
-    await userRef.set({
-      displayName: displayName || "",
-      photoURL: photoURL || "",
-      username: username || "",
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    // (Optional) Update Auth record too
-    await admin.auth().updateUser(uid, {
-      displayName: displayName,
-      photoURL: photoURL
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
 
 // Endpoint to establish session cookie
 app.post("/api/sessionLogin", async (req, res) => {
