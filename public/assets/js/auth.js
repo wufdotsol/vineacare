@@ -50,7 +50,7 @@ if (authNavLink) {
 
           // Backend initialized our DB entry if new. Now we fetch latest state.
           const userRef = doc(db, "users", uid);
-          await updateDoc(userRef, { isOnline: true });
+          await setDoc(userRef, { isOnline: true }, { merge: true });
           const userSnap = await getDoc(userRef);
           const userObj = userSnap.data();
           

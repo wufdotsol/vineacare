@@ -65,10 +65,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (firebaseUser) {
             let localUser = JSON.parse(localStorage.getItem('currentUser'));
             if (!localUser || localUser.email !== firebaseUser.email) {
-                const docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
-                if(docSnap.exists()) {
+                let docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+                if (!docSnap.exists()) {
+                    try {
+                        const idToken = await firebaseUser.getIdToken();
+                        await fetch('/api/sessionLogin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ idToken })
+                        });
+                        docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+                    } catch(err) { console.error("Session re-sync failed", err); }
+                }
+                
+                if (docSnap.exists()) {
                     localUser = docSnap.data();
                     localStorage.setItem('currentUser', JSON.stringify(localUser));
+                } else {
+                    localUser = { email: firebaseUser.email, name: firebaseUser.displayName };
                 }
             }
             window.globalCurrentUser = { uid: firebaseUser.uid, ...localUser };
@@ -637,8 +652,12 @@ function initForumUI(currentUserData) {
                 if (logoutAction) logoutAction.addEventListener('click', async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    
                     try {
-                        await updateDoc(doc(db, 'users', currentUserData.uid), { isOnline: false, lastSeen: serverTimestamp() });
+                        await setDoc(doc(db, 'users', currentUserData.uid), { isOnline: false, lastSeen: serverTimestamp() }, { merge: true });
+                    } catch(err) { console.warn("Could not update online status", err); }
+
+                    try {
                         await signOut(auth);
                         await fetch('/api/sessionLogout', { method: 'POST' });
                         localStorage.removeItem('currentUser');
