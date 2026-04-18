@@ -56,10 +56,7 @@ app.get("/forum/post/:id", (req, res) => {
   res.render("post", { title: "Post Thread", postId: req.params.id });
 });
 
-// Profile page route
-app.get("/profile/:uid", (req, res) => {
-  res.render("profile", { title: "Profile", profileUid: req.params.uid });
-});
+
 
 
 

@@ -67,6 +67,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!localUser || localUser.email !== firebaseUser.email) {
                 let docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
                 if (!docSnap.exists()) {
+                    console.log("Creating missing UI profile for:", firebaseUser.email);
+                    const newObj = {
+                         name: firebaseUser.displayName || "User",
+                         email: firebaseUser.email || "",
+                         username: firebaseUser.email ? firebaseUser.email.split('@')[0] : "unknown",
+                         profile_pic: firebaseUser.photoURL || "",
+                         sentFriendRequests: [], recievedFriendRequests: [], myFriends: [],
+                         myPosts: [], myChats: [], myGroups: [], myEvents: [], myJobs: [],
+                         myApplications: [], myBookmarks: [], myFeeds: [],
+                         lastSeen: null, isOnline: true, isVerified: false
+                    };
+                    await setDoc(doc(db, "users", firebaseUser.uid), newObj);
+                    docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+                    
                     try {
                         const idToken = await firebaseUser.getIdToken();
                         await fetch('/api/sessionLogin', {
@@ -75,8 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             credentials: 'same-origin',
                             body: JSON.stringify({ idToken })
                         });
-                        docSnap = await getDoc(doc(db, "users", firebaseUser.uid));
-                    } catch(err) { console.error("Session re-sync failed", err); }
+                    } catch(e) {}
                 }
                 
                 if (docSnap.exists()) {

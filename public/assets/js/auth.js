@@ -35,33 +35,54 @@ if (authNavLink) {
           const uid = result.user.uid;
           const idToken = await result.user.getIdToken();
           
-          const response = await fetch('/api/sessionLogin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ idToken })
-          });
-          
-          if (!response.ok) {
-             console.error("Backend Session Error:", await response.text());
-             alert("Session sync failed! Please try logging in again.");
-             return;
-          }
-
-          // Backend initialized our DB entry if new. Now we fetch latest state.
+          // Check if document exists first
           const userRef = doc(db, "users", uid);
-          await setDoc(userRef, { isOnline: true }, { merge: true });
           const userSnap = await getDoc(userRef);
-          const userObj = userSnap.data();
+          
+          let userObj;
+          if (!userSnap.exists()) {
+             // Generate user instance as defined in auth.txt
+             userObj = {
+                 name: result.user.displayName || "User",
+                 email: result.user.email || "",
+                 username: result.user.email ? result.user.email.split('@')[0] : "unknown",
+                 profile_pic: result.user.photoURL || "",
+                 sentFriendRequests: [],
+                 recievedFriendRequests: [],
+                 myFriends: [],
+                 myPosts: [],
+                 myChats: [],
+                 myGroups: [],
+                 myEvents: [],
+                 myJobs: [],
+                 myApplications: [],
+                 myBookmarks: [],
+                 myFeeds: [],
+                 lastSeen: null,
+                 isOnline: true,
+                 isVerified: false
+             };
+             // Push it to the database
+             await setDoc(userRef, userObj);
+             console.log("Successfully created user document:", userObj);
+          } else {
+             // If doc was found, update user object with data from document
+             userObj = userSnap.data();
+             await setDoc(userRef, { isOnline: true }, { merge: true });
+          }
           
           console.log("Downloaded Firebase User Document:", userObj);
           localStorage.setItem('currentUser', JSON.stringify(userObj));
           
-          if (!response.ok) {
-             console.error("Backend Session Error:", await response.text());
-             alert("Session sync failed! Please try logging in again.");
-             return;
-          }
+          // Also establish backend session but non-blocking gracefully
+          try {
+            await fetch('/api/sessionLogin', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ idToken })
+            });
+          } catch(e) { console.warn("Backend session sync failed but frontend auth passed", e); }
           
           if (window.location.pathname.includes('/forum')) {
               window.dispatchEvent(new CustomEvent('navLoginSuccess', { detail: userObj }));
@@ -77,10 +98,12 @@ if (authNavLink) {
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // User is signed in, replace icon with profile picture
-    const profilePicUrl = user.photoURL;
-    authNavLink.innerHTML = `<img src="${profilePicUrl}" alt="${user.displayName}" style="width: 24px; height: 24px; border-radius: 50%; margin-left: 10px; object-fit: cover;">`;
-    authNavLink.title = `Profile (${user.displayName})`;
+    if (authNavLink) {
+      // User is signed in, replace icon with profile picture
+      const profilePicUrl = user.photoURL;
+      authNavLink.innerHTML = `<img src="${profilePicUrl}" alt="${user.displayName}" style="width: 24px; height: 24px; border-radius: 50%; margin-left: 10px; object-fit: cover;">`;
+      authNavLink.title = `Profile (${user.displayName})`;
+    }
     
     // Also ensure currentUser in local storage exists
     if (!localStorage.getItem('currentUser')) {
@@ -91,9 +114,11 @@ onAuthStateChanged(auth, async (user) => {
       }
     }
   } else {
-    // User is signed out, show default icon
-    authNavLink.innerHTML = `<i class="bi bi-person-circle" style="font-size: 1.1rem; margin-left: 10px;"></i>`;
-    authNavLink.title = "Login";
+    if (authNavLink) {
+      // User is signed out, show default icon
+      authNavLink.innerHTML = `<i class="bi bi-person-circle" style="font-size: 1.1rem; margin-left: 10px;"></i>`;
+      authNavLink.title = "Login";
+    }
     localStorage.removeItem('currentUser');
   }
 });
