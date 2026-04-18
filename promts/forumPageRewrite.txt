@@ -1,0 +1,22 @@
+## Forum Page Rewrite
+
+1. Optional Navigation
+    - if there is a current user logged in, take them to the forum
+    - otherwise, use the public/assets/img/stock/vineacare_who_are_we image to create the login prompt uid
+    - the three column bootstrap view will be retained but the posts and feed functionality completely removed.
+    - the left column will display user profile and stats
+    - the center column will display the users inboxes
+    - the right column will show a discord like list of all members with their online status
+
+2. The Left column
+    - will display the current user's account info {pfp, email, display name}
+
+3. The Middle Column
+    - a list of all chats the user is a part of
+    - each chat will display the chat name, the last message, and the time of the last message
+    - clicking on a chat will open the chat in the right column
+
+4. The Right Column
+    - loads chats for the selected chat on the middle column
+    - has the chat form with the firebase functionality
+    - has the chat messages
