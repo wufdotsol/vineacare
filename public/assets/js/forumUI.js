@@ -600,20 +600,53 @@ function initForumUI(currentUserData) {
 
     const sideLogOutBtn = document.getElementById('side-logout-btn');
     if (sideLogOutBtn) {
-        const newLogOutBtn = sideLogOutBtn.cloneNode(true);
+        const newLogOutBtn = sideLogOutBtn.cloneNode(false);
         sideLogOutBtn.parentNode.replaceChild(newLogOutBtn, sideLogOutBtn);
-        newLogOutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            if (isGuest) { document.getElementById('auth-nav-link')?.click(); return; }
-            try {
-                await updateDoc(doc(db, 'users', currentUserData.uid), { isOnline: false, lastSeen: serverTimestamp() });
-                await signOut(auth);
-                await fetch('/api/sessionLogout', { method: 'POST' });
-                localStorage.removeItem('currentUser');
-                window.location.href = '/';
-            } catch(err) { window.showToast("Failure.", true); }
-        });
-        if (isGuest) { newLogOutBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-3 fs-5"></i> Log In'; newLogOutBtn.classList.add('text-primary'); }
+        
+        if (isGuest) {
+            newLogOutBtn.innerHTML = '<i class="bi bi-google me-3 fs-5"></i> Sign In';
+            newLogOutBtn.classList.remove('text-danger', 'justify-content-between');
+            newLogOutBtn.classList.add('text-primary');
+            newLogOutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('auth-nav-link')?.click();
+            });
+        } else {
+            const logoutPfp = currentUserData?.profile_pic || `https://ui-avatars.com/api/?name=${(currentUserData?.email || "User").split('@')[0]}&background=random`;
+            newLogOutBtn.classList.remove('text-primary');
+            newLogOutBtn.classList.add('text-danger', 'justify-content-between');
+            newLogOutBtn.innerHTML = `
+                <div class="d-flex align-items-center" id="side-pfp-btn" style="cursor:pointer;" title="View Profile">
+                    <img src="${logoutPfp}" class="rounded-circle border border-primary border-2" width="30" height="30" style="object-fit:cover;">
+                </div>
+                <div class="d-flex align-items-center" id="side-logout-action-btn" style="cursor:pointer; color: inherit;">
+                    <i class="bi bi-box-arrow-right me-2 fs-5"></i> Logout
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const pfpBtn = document.getElementById('side-pfp-btn');
+                const logoutAction = document.getElementById('side-logout-action-btn');
+                
+                if (pfpBtn) pfpBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.viewUserProfile(window.globalCurrentUser.uid);
+                });
+                
+                if (logoutAction) logoutAction.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        await updateDoc(doc(db, 'users', currentUserData.uid), { isOnline: false, lastSeen: serverTimestamp() });
+                        await signOut(auth);
+                        await fetch('/api/sessionLogout', { method: 'POST' });
+                        localStorage.removeItem('currentUser');
+                        window.location.href = '/';
+                    } catch(err) { window.showToast("Failure.", true); }
+                });
+            }, 0);
+        }
     }
 }
 

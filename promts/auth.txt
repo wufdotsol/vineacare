@@ -29,3 +29,17 @@ authflow
 - logging out; 
     - sets the current user to null and navigates to the homepage.
     - updates the firebase doc lastSeen to the current time and isOnline to false.
+
+- the left navbar logout button should display an optional signin button if the user is not logged in. this button should initiate the sign in with google. if the user is logged in, it should display a logout button. this button should be placed at the bottom of the left navbar.
+
+- the signin button should be styled as a button with the text "Sign In" and a google icon. it should be styled as a button with the text "Sign In" and a google icon. it should be styled as a button with the text "Sign In" and a google icon.
+
+- the logout button should be styled as a button with the text "Logout" and a google icon. it should be styled as a button with the text "Logout" and a google icon. it should be styled as a button with the text "Logout" and a google icon.
+
+- once the user is logged in, the signin button should be replaced with the logout button.
+- a small profile picture of the user should be displayed next to the logout button.
+- the profile picture should be circular and have a border of the theme color.
+- the profile picture should be clickable and should open the user profile page on the right navbar.
+
+- download and output the successfully created user document on firebase firestore database in the users collection with the uid as the document id to the console.
+- update all relevant ui with the info from the downloaded current user.
